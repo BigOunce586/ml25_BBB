@@ -28,6 +28,9 @@ class QLearningAgent(RandomAgent):
     def __init__(self, env, alpha=0.1, gamma=0.9, epsilon=0.1):
         super().__init__(env, alpha, gamma, epsilon)
 
+    def save(self, filename):
+        np.save(filename, self.Q)
+
     def act(self, observation):
         if np.random.random() < self.epsilon:
             return env.action_space.sample()  # Exploration
@@ -36,20 +39,17 @@ class QLearningAgent(RandomAgent):
 
     # Update Q values using Q-learning
     def step(self, state, action, reward, next_state):
-        best_next_action = np.argmax(self.Q[next_state])
-        # TODO: Implementa la actualización de Q-learning usando la ecuación vista en clase
-        self.Q[state][action] = ...
+        # td_target = reward + self.gamma * np.max(self.Q[next_state])
+        # td_error = td_target - self.Q[state][action]
+        # self.Q[state][action] += self.alpha * td_error
+
+        self.Q[state][action] = self.Q[state][action] + \
+            self.alpha * (reward + self.gamma * np.max(self.Q[next_state]) - self.Q[state][action])
 
 
 if __name__ == "__main__":
-    # TODO:
-    # Este ejercicio cuenta como 5 pts extra en el primer examen parcial
-    # 1. completa el código para implementar q learning,
-    # 2. modifica los hiperparámetros para que el agente aprenda
-    # 3. ejecuta el script para ver el comportamiento del agente
-    # 4. Implementa una técnica para reducir la exploración conforme el agente aprende
     # https://gymnasium.farama.org/environments/toy_text/cliff_walking/
-    env = gym.make("CliffWalking-v0", render_mode="human")
+    env = gym.make("CliffWalking-v0")
 
     n_episodes = 1000
     episode_length = 200
@@ -69,10 +69,8 @@ if __name__ == "__main__":
             ep_return += reward
             obs = next_obs
             print(agent.Q)
-            env.render()
-        # TODO: Implementa algun código para reducir la exploración del agente conforme aprende
-        # puedes decidir hacerlo por episodio, por paso del tiempo, retorno promedio, etc.
-
-
+        
+        # Decay epsilon
+        agent.epsilon *= 0.99
         print(f"Episode {e} return: ", ep_return)
     env.close()
