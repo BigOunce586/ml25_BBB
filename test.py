@@ -1,6 +1,11 @@
-<<<<<<< HEAD
-qwertyuiop
-=======
-jdikrklewol
-wrew
->>>>>>> 5a05ff61c1b19a460b1099fdab19b4bedec17f10
+def obtener_primer_elemento(lista):
+    if lista:
+        return lista[0]  # Siempre 1 operación
+    return None
+
+import time
+lista = [12,123,1234,12345]
+
+inicio = time.time()
+obtener_primer_elemento(lista)
+print(f"Tiempo de ejecucion = {time.time()-inicio}")
