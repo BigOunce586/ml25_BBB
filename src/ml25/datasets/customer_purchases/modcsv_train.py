@@ -1,10 +1,9 @@
 import pandas as pd
 
-ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_test_modify.csv"
+ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_train_modify.csv"
 
 dataFrame = pd.read_csv(ruta_csv)
 
-# Modificar la columna 'color'
 dataFrame["color"] = dataFrame["color"].replace("imgb.jpg", 1)
 dataFrame["color"] = dataFrame["color"].replace("imgbl.jpg", 0.714)
 dataFrame["color"] = dataFrame["color"].replace("imgg.jpg", 0.429)
@@ -15,5 +14,4 @@ dataFrame["color"] = dataFrame["color"].replace("imgy.jpg",-1)
 dataFrame["color"] = dataFrame["color"].replace("imgr.jpg",-0.1)
 
 
-# Guardar en el mismo archivo
 dataFrame.to_csv(ruta_csv, index=False)
