@@ -17,10 +17,19 @@ dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("female", 1)
 dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("male",2)
 dataFrame["customer_gender"] = dataFrame["customer_gender"].fillna(3)
 
-columna_fecha = "customer_date_of_birth" 
-dataFrame[columna_fecha] = pd.to_datetime(dataFrame[columna_fecha], errors="coerce")
-hoy = datetime.today()
-dataFrame[columna_fecha] = dataFrame[columna_fecha].apply(
-    lambda x: hoy.year - x.year - ((hoy.month, hoy.day) < (x.month, x.day)) if pd.notnull(x) else None
-)
+#columna_fecha = "edad" 
+#dataFrame[columna_fecha] = pd.to_datetime(dataFrame[columna_fecha], errors="coerce")
+#hoy = datetime.today()
+#dataFrame[columna_fecha] = dataFrame[columna_fecha].apply(
+#    lambda x: hoy.year - x.year - ((hoy.month, hoy.day) < (x.month, x.day)) if pd.notnull(x) else None
+#)
+
+#hoy2 = pd.Timestamp.now()
+#dataFrame["customer_signup_date"] = pd.to_datetime(dataFrame["customer_signup_date"], errors="coerce")
+#dataFrame["customer_signup_date"] = ((hoy2 - dataFrame["customer_signup_date"]).dt.days / 30.44).round(3) # 30.44 es el promedio de días por mes
+
+
+
+
+
 dataFrame.to_csv(ruta_csv, index=False)
