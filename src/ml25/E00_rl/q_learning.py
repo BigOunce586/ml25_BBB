@@ -11,7 +11,7 @@ class RandomAgent:
 
         # Tabla estados x acciones
         self.Q = np.zeros((env.observation_space.n, env.action_space.n))
-        # Parameters
+        # Parameters 
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration rate
