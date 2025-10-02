@@ -55,3 +55,16 @@ def gen_all_negatives(df):
 
 def gen_smart_negatives(df):
     pass
+
+
+if __name__ == "__main__":
+    # Ejemplo de uso
+    data = {
+        "customer_id": [1, 1, 2, 2, 3],
+        "item_id": [101, 102, 101, 103, 104],
+        "label": [1, 1, 1, 1, 1],
+    }
+    train_df = pd.DataFrame(data)
+
+    neg_df = gen_random_negatives(train_df, n_per_positive=2)
+    print(neg_df)
