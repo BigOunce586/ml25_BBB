@@ -7,14 +7,14 @@ ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purcha
 
 dataFrame = pd.read_csv(ruta_csv)
 
-dataFrame["color"] = dataFrame["color"].replace("imgb.jpg", 1)
-dataFrame["color"] = dataFrame["color"].replace("imgbl.jpg", 0.714)
-dataFrame["color"] = dataFrame["color"].replace("imgg.jpg", 0.429)
-dataFrame["color"] = dataFrame["color"].replace("imgp.jpg", -0.429)
-dataFrame["color"] = dataFrame["color"].replace("imgw.jpg", -0.714)
-dataFrame["color"] = dataFrame["color"].replace("imgo.jpg", 0.143)
-dataFrame["color"] = dataFrame["color"].replace("imgy.jpg",-1)
-dataFrame["color"] = dataFrame["color"].replace("imgr.jpg",-0.1)
+dataFrame["color"] = dataFrame["color"].replace("imgb.jpg", 1) #azul
+dataFrame["color"] = dataFrame["color"].replace("imgbl.jpg", 0.714) #negro
+dataFrame["color"] = dataFrame["color"].replace("imgg.jpg", 0.429)  #verde
+dataFrame["color"] = dataFrame["color"].replace("imgp.jpg", -0.429) #rosa
+dataFrame["color"] = dataFrame["color"].replace("imgw.jpg", -0.714) #blanco
+dataFrame["color"] = dataFrame["color"].replace("imgo.jpg", 0.143) #naranja
+dataFrame["color"] = dataFrame["color"].replace("imgy.jpg",-1) #amarillo
+dataFrame["color"] = dataFrame["color"].replace("imgr.jpg",-0.1) #verde
 dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("female", 1)
 dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("male",2)
 dataFrame["customer_gender"] = dataFrame["customer_gender"].fillna(3)
