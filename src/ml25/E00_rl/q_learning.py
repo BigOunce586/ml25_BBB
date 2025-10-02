@@ -11,7 +11,7 @@ class RandomAgent:
 
         # Tabla estados x acciones
         self.Q = np.zeros((env.observation_space.n, env.action_space.n))
-        # Parameters
+        # Parameters 
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration rate
@@ -37,7 +37,8 @@ class QLearningAgent(RandomAgent):
     def step(self, state, action, reward, next_state):
         best_next_action = np.argmax(self.Q[next_state])
         # TODO: Implementa la actualización de Q-learning usando la ecuación vista en clase
-        self.Q[state][action] = ...
+        #Ecuacion:
+        self.Q[state][action] = self.Q[state][action] + self.alpha * (reward + self.gamma * self.Q[next_state][best_next_action] - self.Q[state][action])
 
 
 if __name__ == "__main__":
@@ -52,7 +53,10 @@ if __name__ == "__main__":
 
     n_episodes = 1000
     episode_length = 200
-    agent = RandomAgent(env, alpha=0.1, gamma=0.9, epsilon=0.9)
+    #original -> agent = RandomAgent(env, alpha=0.1, gamma=0.9, epsilon=0.9)
+    #modified -> 
+    agent = QLearningAgent(env, alpha=0.1, gamma=0.9, epsilon=1.0)
+    #Upgradaded -> agent.epsilon = max(0.01, agent.epsilon * 0.995)
     for e in range(n_episodes):
         obs, _ = env.reset()
         ep_return = 0
@@ -60,17 +64,26 @@ if __name__ == "__main__":
             # take a random action
             action = agent.act(obs)
             next_obs, reward, done, _, _ = env.step(action)
+
             # update agent
             agent.step(obs, action, reward, next_obs)
 
-            if done:
-                break
+
             ep_return += reward
             obs = next_obs
-            print(agent.Q)
-            env.render()
+            if done:
+                break
+            #original -> ep_return += reward
+            #original -> obs = next_obs
+            #print(agent.Q)
+            #env.render()
         # TODO: Implementa algun código para reducir la exploración del agente conforme aprende
         # puedes decidir hacerlo por episodio, por paso del tiempo, retorno promedio, etc.
 
-        print(f"Episode {e} return: ", ep_return)
+        #Reducir la explocación poco a poco
+        agent.epsilon = max(0.01, agent.epsilon * 0.995)
+
+        #print(f"Episode {e} return: ", ep_return)
+        print(f"Episode {e} return: {ep_return}, epsilon: {agent.epsilon:.3f}")
+
     env.close()
