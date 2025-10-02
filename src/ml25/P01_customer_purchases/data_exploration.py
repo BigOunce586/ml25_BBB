@@ -17,6 +17,12 @@ def read_csv(filename: str):
 
 if __name__ == "__main__":
     train_df = read_csv("customer_purchases_train")
-    print(train_df.info())
+    #print(train_df.info())
     test_df = read_csv("customer_purchases_test")
+    #print(test_df.columns)
+
+    print("----- Información del set de entrenamiento -----")
+    print(train_df.info())
+    print("\n----- Columnas del set de prueba -----")
     print(test_df.columns)
+
