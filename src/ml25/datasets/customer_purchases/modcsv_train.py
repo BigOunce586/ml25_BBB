@@ -4,49 +4,42 @@ import re
 
 ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_train_modify.csv"
 
-# === Leer CSV original ===
 dataFrame = pd.read_csv(ruta_csv)
 
-# === Reemplazar valores en 'color' ===
 dataFrame["color"] = dataFrame["color"].replace({
-    "imgb.jpg": 1,
-    "imgbl.jpg": 0.714,
-    "imgg.jpg": 0.429,
-    "imgp.jpg": -0.429,
-    "imgw.jpg": -0.714,
-    "imgo.jpg": 0.143,
-    "imgy.jpg": -1,
-    "imgr.jpg": -0.1
+ "imgb.jpg": 1,
+ "imgbl.jpg": 2,
+ "imgg.jpg": 3,
+ "imgp.jpg": 4,
+  "imgw.jpg": 5,
+  "imgo.jpg": 6,
+  "imgy.jpg": 7,
+ "imgr.jpg": 8
 })
 
-# === Codificar género ===
-dataFrame["customer_gender"] = dataFrame["customer_gender"].replace({"female": 1, "male": 2}).fillna(3)
+dataFrame["customer_gender"] = dataFrame["customer_gender"].replace({"female": 1, "male": 2}).fillna(0)
 
-# === Calcular edad (a partir de la fecha de nacimiento) ===
-columna_fecha = "edad"
-dataFrame[columna_fecha] = pd.to_datetime(dataFrame[columna_fecha], errors="coerce")
-hoy = datetime.today()
-dataFrame[columna_fecha] = dataFrame[columna_fecha].apply(
-    lambda x: hoy.year - x.year - ((hoy.month, hoy.day) < (x.month, x.day)) if pd.notnull(x) else None
-)
+# columna_fecha = "edad"
+# dataFrame[columna_fecha] = pd.to_datetime(dataFrame[columna_fecha], errors="coerce")
+# hoy = datetime.today()
+# dataFrame[columna_fecha] = dataFrame[columna_fecha].apply(
+#     lambda x: hoy.year - x.year - ((hoy.month, hoy.day) < (x.month, x.day)) if pd.notnull(x) else None
+# )
 
-# === Tiempo desde registro (en meses) ===
-hoy2 = pd.Timestamp.now()
-dataFrame["customer_signup_date"] = pd.to_datetime(dataFrame["customer_signup_date"], errors="coerce")
-dataFrame["customer_signup_date"] = ((hoy2 - dataFrame["customer_signup_date"]).dt.days / 30.44).round(3)
+# hoy2 = pd.Timestamp.now()
+# dataFrame["customer_signup_date"] = pd.to_datetime(dataFrame["customer_signup_date"], errors="coerce")
+# dataFrame["customer_signup_date"] = ((hoy2 - dataFrame["customer_signup_date"]).dt.days / 30.44).round(3)
 
-# === Mapear categorías ===
 mapa = {
     "jacket": 1.0,
-    "blouse": 0.6,
-    "jeans": 0.2,
-    "skirt": -0.2,
-    "shoes": -0.6,
-    "dress": -1.0
+    "blouse": 2,
+    "jeans": 3,
+    "skirt": 4,
+    "shoes": 5,
+    "dress": 6,
 }
 dataFrame["item_category"] = dataFrame["item_category"].map(mapa)
 
-# === Mantener solo adjetivos del título ===
 adjectives = [
     "premium", "casual", "modern", "stylish",
     "exclusive", "elegant", "classic",
@@ -69,7 +62,4 @@ def keep_adjectives(title):
 
 dataFrame["item_title"] = dataFrame["item_title"].apply(keep_adjectives)
 
-# === Guardar sobre el mismo archivo ===
 dataFrame.to_csv(ruta_csv, index=False)
-
-print("✅ Archivo sobrescrito correctamente:", ruta_csv)
