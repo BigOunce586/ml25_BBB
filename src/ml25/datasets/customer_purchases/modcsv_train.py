@@ -3,7 +3,6 @@ from datetime import datetime
 import re
 
 ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_train_modify.csv"
-
 dataFrame = pd.read_csv(ruta_csv)
 
 dataFrame["color"] = dataFrame["color"].replace("imgb.jpg", 1)
