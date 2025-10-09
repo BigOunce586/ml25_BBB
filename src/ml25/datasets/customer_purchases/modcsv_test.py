@@ -1,75 +1,85 @@
 import pandas as pd
-from datetime import datetime
-import re
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
-ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_test_modify.csv"
+# --- Cargar CSV de test ---
+ruta_csv_test = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_test.csv"
+df_test = pd.read_csv(ruta_csv_test)
 
-dataFrame = pd.read_csv(ruta_csv)
+# --- Limpiar customer_id ---
+df_test['customer_id'] = df_test['customer_id'].str.replace('CUST_', '').astype(int)
 
-dataFrame["color"] = dataFrame["color"].replace("imgb.jpg", 1)
-dataFrame["color"] = dataFrame["color"].replace("imgbl.jpg", 0.714)
-dataFrame["color"] = dataFrame["color"].replace("imgg.jpg", 0.429)
-dataFrame["color"] = dataFrame["color"].replace("imgp.jpg", -0.429)
-dataFrame["color"] = dataFrame["color"].replace("imgw.jpg", -0.714)
-dataFrame["color"] = dataFrame["color"].replace("imgo.jpg", 0.143)
-dataFrame["color"] = dataFrame["color"].replace("imgy.jpg",-1)
-dataFrame["color"] = dataFrame["color"].replace("imgr.jpg",-0.1)
+# --- Convertir fechas ---
+df_test['customer_date_of_birth'] = pd.to_datetime(df_test['customer_date_of_birth'], errors='coerce')
+df_test['customer_signup_date'] = pd.to_datetime(df_test['customer_signup_date'], errors='coerce')
+reference_date = pd.to_datetime('2025-09-21')
 
-dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("female", 1)
-dataFrame["customer_gender"] = dataFrame["customer_gender"].replace("male",2)
-dataFrame["customer_gender"] = dataFrame["customer_gender"].fillna(3)
+# --- Edad y tenure ---
+df_test['edad'] = ((reference_date - df_test['customer_date_of_birth']).dt.days / 365).fillna(0).astype(int)
+df_test['tenure_months'] = ((reference_date - df_test['customer_signup_date']).dt.days / 30).fillna(0).astype(int)
 
-#columna_fecha = "edad" 
-#dataFrame[columna_fecha] = pd.to_datetime(dataFrame[columna_fecha], errors="coerce")
-#hoy = datetime.today()
-#dataFrame[columna_fecha] = dataFrame[columna_fecha].apply(
-#    lambda x: hoy.year - x.year - ((hoy.month, hoy.day) < (x.month, x.day)) if pd.notnull(x) else None
-#)
+# --- Gender codificado automáticamente ---
+le_gender = LabelEncoder()
+df_test['customer_gender'] = df_test['customer_gender'].fillna('unknown')
+df_test['customer_gender'] = le_gender.fit_transform(df_test['customer_gender'].astype(str))
 
-# meses de sign up hoy2 = pd.Timestamp.now()
-#dataFrame["customer_signup_date"] = pd.to_datetime(dataFrame["customer_signup_date"], errors="coerce")
-#dataFrame["customer_signup_date"] = ((hoy2 - dataFrame["customer_signup_date"]).dt.days / 30.44).round(3) # 30.44 es el promedio de días por mes
+# --- Colores codificados automáticamente ---
+le_color = LabelEncoder()
+df_test['color'] = df_test['item_img_filename'].str[:4]
+df_test['color'] = le_color.fit_transform(df_test['color'].astype(str))
 
-mapa = {
-    "jacket": 1.0,
-    "blouse": 0.6,
-    "jeans": 0.2,
-    "skirt": -0.2,
-    "shoes": -0.6,
-    "dress": -1.0
-}
+# --- Extraer adjetivos del título ---
+adjetivos = ["premium", "casual", "modern", "stylish", "exclusive",
+             "elegant", "classic", "lightweight", "durable"]
 
-dataFrame["item_category"] = dataFrame["item_category"].map(mapa)
-dataFrame.to_csv("customer_purchases_train.csv", index=False)
+def extract_adjectives(title):
+    title = str(title).lower()
+    found = [adj for adj in adjetivos if adj in title]
+    return found if found else []
 
-adjectives = [
-    "premium",
-    "casual",
-    "modern",
-    "stylish",
-    "exclusive",
-    "elegant",
-    "classic",
-    "lightweight",
-    "durable"
-]
+df_test['title_adjectives'] = df_test['item_title'].apply(extract_adjectives)
 
-pattern = re.compile(r'\b(' + '|'.join(map(re.escape, adjectives)) + r')\b', flags=re.IGNORECASE)
+# --- Codificar categorías igual que entrenamiento ---
+categories_list = ["jacket", "blouse", "jeans", "skirt", "shoes", "dress"]
+le_category = LabelEncoder()
+le_category.fit(categories_list)
 
-def keep_adjectives(title):
-    if pd.isna(title):
-        return ""      
-    matches = [m.group(0) for m in pattern.finditer(str(title))]
-    seen = set()
-    result = []
-    for m in matches:
-        key = m.lower()
-        if key not in seen:
-            seen.add(key)
-            result.append(m)   
-    return " ".join(result) 
-dataFrame = pd.read_csv(ruta_csv)
-dataFrame["item_title"] = dataFrame["item_title"].apply(keep_adjectives)
+# --- Crear filas por cliente × categoría ---
+rows_test = []
+for cid in df_test['customer_id'].unique():
+    df_cust = df_test[df_test['customer_id'] == cid]
+    for cat_name in categories_list:
+        cat_num = le_category.transform([cat_name])[0]
+        df_cat = df_cust[df_cust['item_category'] == cat_name]
+        
+        temp = {'customer_id': cid, 'item_category': cat_num}
+        
+        # Compras en esta categoría en test (si hay alguno en este CSV)
+        temp['purchases_in_category'] = len(df_cat)
+        temp['total_spent_in_category'] = df_cat['item_price'].sum() if not df_cat.empty else 0
+        temp['avg_spent_in_category'] = df_cat['item_price'].mean() if not df_cat.empty else 0
+        
+        # Cantidad por color
+        for color in df_test['color'].unique():
+            df_color = df_cat[df_cat['color'] == color]
+            temp[f'color_count_{color}'] = len(df_color)
+        
+        # Cantidad por adjetivo
+        for adj in adjetivos:
+            df_adj = df_cat[df_cat['title_adjectives'].apply(lambda x: adj in x)]
+            temp[f'adj_count_{adj}'] = len(df_adj)
+        
+        # Stats globales del cliente
+        temp['edad'] = df_cust['edad'].iloc[0]
+        temp['genero'] = df_cust['customer_gender'].iloc[0]
+        temp['tenure_months'] = df_cust['tenure_months'].iloc[0]
+        temp['total_purchases'] = len(df_cust)
+        
+        rows_test.append(temp)
 
+# --- Crear DataFrame final de test ---
+model_test_df = pd.DataFrame(rows_test)
 
-dataFrame.to_csv(ruta_csv, index=False)
+# --- Guardar CSV de test preprocesado ---
+model_test_df.to_csv("customer_profiles_test_cliente_categoria.csv", index=False)
+model_test_df.head()
