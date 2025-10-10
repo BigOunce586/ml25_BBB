@@ -24,6 +24,8 @@ df_test['customer_gender'] = df_test['customer_gender'].fillna('unknown')
 df_test['customer_gender'] = le_gender.fit_transform(df_test['customer_gender'].astype(str))
 
 # --- Colores codificados automáticamente ---
+color_prefixes = ['imgb', 'imgbl', 'imgg', 'imgp', 'imgw', 'imgo', 'imgy', 'imgr']
+color_names = ['blue', 'black', 'green', 'pink', 'white', 'orange', 'yellow', 'red']
 le_color = LabelEncoder()
 df_test['color'] = df_test['item_img_filename'].str[:4]
 df_test['color'] = le_color.fit_transform(df_test['color'].astype(str))
@@ -39,7 +41,7 @@ def extract_adjectives(title):
 
 df_test['title_adjectives'] = df_test['item_title'].apply(extract_adjectives)
 
-# --- Codificar categorías igual que entrenamiento ---
+# --- Categorías fijas y codificación ---
 categories_list = ["jacket", "blouse", "jeans", "skirt", "shoes", "dress"]
 le_category = LabelEncoder()
 le_category.fit(categories_list)
@@ -54,14 +56,14 @@ for cid in df_test['customer_id'].unique():
         
         temp = {'customer_id': cid, 'item_category': cat_num}
         
-        # Compras en esta categoría en test (si hay alguno en este CSV)
+        # Compras en esta categoría
         temp['purchases_in_category'] = len(df_cat)
         temp['total_spent_in_category'] = df_cat['item_price'].sum() if not df_cat.empty else 0
         temp['avg_spent_in_category'] = df_cat['item_price'].mean() if not df_cat.empty else 0
         
-        # Cantidad por color
-        for color in df_test['color'].unique():
-            df_color = df_cat[df_cat['color'] == color]
+        # Cantidad por color (fijas 8 columnas)
+        for i, color in enumerate(color_names):
+            df_color = df_cat[df_cat['color'] == i]
             temp[f'color_count_{color}'] = len(df_color)
         
         # Cantidad por adjetivo
@@ -80,6 +82,6 @@ for cid in df_test['customer_id'].unique():
 # --- Crear DataFrame final de test ---
 model_test_df = pd.DataFrame(rows_test)
 
-# --- Guardar CSV de test preprocesado ---
-model_test_df.to_csv("customer_profiles_test_cliente_categoria.csv", index=False)
+# --- Guardar CSV final con nombres de colores legibles ---
+model_test_df.to_csv("customer_profiles_test_cliente_categoria_final_named.csv", index=False)
 model_test_df.head()

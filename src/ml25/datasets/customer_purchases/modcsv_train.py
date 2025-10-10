@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-# --- Cargar CSV ---
+# --- Cargar CSV de train ---
 ruta_csv = r"C:\Users\paola\Downloads\ml25_BBB\src\ml25\datasets\customer_purchases\customer_purchases_train.csv"
 df = pd.read_csv(ruta_csv)
 
@@ -24,6 +24,10 @@ df['customer_gender'] = df['customer_gender'].fillna('unknown')
 df['customer_gender'] = le_gender.fit_transform(df['customer_gender'].astype(str))
 
 # --- Colores codificados automáticamente ---
+# Lista de colores fijos (8)
+color_prefixes = ['imgb', 'imgbl', 'imgg', 'imgp', 'imgw', 'imgo', 'imgy', 'imgr']
+color_names = ['blue', 'black', 'green', 'pink', 'white', 'orange', 'yellow', 'red']
+
 le_color = LabelEncoder()
 df['color'] = df['item_img_filename'].str[:4]
 df['color'] = le_color.fit_transform(df['color'].astype(str))
@@ -39,10 +43,10 @@ def extract_adjectives(title):
 
 df['title_adjectives'] = df['item_title'].apply(extract_adjectives)
 
-# --- Definir categorías fijas y codificar ---
+# --- Categorías fijas y codificación ---
 categories_list = ["jacket", "blouse", "jeans", "skirt", "shoes", "dress"]
 le_category = LabelEncoder()
-le_category.fit(categories_list)  # solo estas 6 categorías
+le_category.fit(categories_list)
 
 # --- Generar filas por cliente × categoría ---
 rows = []
@@ -54,18 +58,18 @@ for cid in df['customer_id'].unique():
         
         temp = {'customer_id': cid, 'item_category': cat_num}
         
-        # Compras en esa categoría
+        # Compras en esta categoría
         temp['purchases_in_category'] = len(df_cat)
         temp['total_spent_in_category'] = df_cat['item_price'].sum() if not df_cat.empty else 0
         temp['avg_spent_in_category'] = df_cat['item_price'].mean() if not df_cat.empty else 0
         temp['label'] = 1 if not df_cat.empty else 0
         
-        # Cantidad por color (solo dentro de la categoría)
-        for color in df['color'].unique():
-            df_color = df_cat[df_cat['color'] == color]
+        # Cantidad por color (fijas 8 columnas)
+        for i, color in enumerate(color_names):
+            df_color = df_cat[df_cat['color'] == i]
             temp[f'color_count_{color}'] = len(df_color)
         
-        # Cantidad por adjetivo (solo dentro de la categoría)
+        # Cantidad por adjetivo (todas)
         for adj in adjetivos:
             df_adj = df_cat[df_cat['title_adjectives'].apply(lambda x: adj in x)]
             temp[f'adj_count_{adj}'] = len(df_adj)
@@ -81,6 +85,6 @@ for cid in df['customer_id'].unique():
 # --- Crear DataFrame final ---
 model_df = pd.DataFrame(rows)
 
-# --- Guardar CSV final ---
-model_df.to_csv("customer_profiles_cliente_categoria_final.csv", index=False)
+# --- Guardar CSV final con nombres de colores legibles ---
+model_df.to_csv("customer_profiles_train_cliente_categoria_final_named_colors.csv", index=False)
 model_df.head()
