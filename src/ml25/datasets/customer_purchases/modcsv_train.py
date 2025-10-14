@@ -86,5 +86,5 @@ for cid in df['customer_id'].unique():
 model_df = pd.DataFrame(rows)
 
 # --- Guardar CSV final con nombres de colores legibles ---
-model_df.to_csv("customer_profiles_train_cliente_categoria_final_named_colors.csv", index=False)
+model_df.to_csv("customer_purchase_train_modify.csv", index=False)
 model_df.head()
