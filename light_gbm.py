@@ -116,10 +116,10 @@ pred_df = pd.DataFrame({
 })
 pred_df.to_csv("predicciones_LightGBM_final.csv", index=False)
 
-# --- 14. Guardar modelo y escalador ---
+
 joblib.dump(model, "best_model_LightGBM_final.pkl")
 joblib.dump(scaler, "scaler_LightGBM_final.pkl")
 
-print("\n✅ Archivo 'predicciones_LightGBM_final.csv' generado correctamente.")
+print("\n Archivo 'predicciones_LightGBM_final.csv' generado correctamente.")
 print(f"Filas del test: {pred_df.shape[0]}")
 print(pred_df.head())

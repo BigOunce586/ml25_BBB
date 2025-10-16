@@ -60,7 +60,7 @@ X_scaled_full = scaler.fit_transform(X)
 acc_scores = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring='accuracy')
 f1_scores = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring='f1')
 
-print("\n🔁 Validación cruzada (5 folds):")
+print("\n Validación cruzada (5 folds):")
 print(f"Accuracy promedio: {acc_scores.mean():.4f} ± {acc_scores.std():.4f}")
 print(f"F1 promedio:       {f1_scores.mean():.4f} ± {f1_scores.std():.4f}")
 
@@ -70,7 +70,7 @@ coef_importance = pd.DataFrame({
     "importance": np.abs(model.coef_[0])
 }).sort_values(by="importance", ascending=False)
 
-print("\n📊 Principales variables que influyen en la predicción:")
+print("\n Principales variables que influyen en la predicción:")
 print(coef_importance.head(15))
 
 plt.figure(figsize=(10,6))
