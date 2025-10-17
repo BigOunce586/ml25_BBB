@@ -4,7 +4,6 @@ from pathlib import Path
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 DATA_COLLECTED_AT = datetime(2025, 9, 21).date()
 CURRENT_FILE = Path(__file__).resolve()
