@@ -1,111 +1,68 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
-from sklearn.preprocessing import StandardScaler
-from lightgbm import LGBMClassifier
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-import matplotlib.pyplot as plt
+import lightgbm as lgb
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
+from sklearn.model_selection import train_test_split
 import joblib
 
-train = pd.read_csv("customer_purchase_train_modify.csv")
-test = pd.read_csv("customer_purchase_test_modify.csv")
+train_df = pd.read_csv("train_final.csv")
+test_df = pd.read_csv("test_final.csv")
 
-train["label"] = train["purchases_in_category"].apply(lambda x: 1 if x > 0 else 0)
-
-cols_to_drop = [
-    "purchases_in_category",
-    "avg_spent_in_category",
-    "total_spent_in_category"
-]
-
-feature_cols = [c for c in train.columns if c not in ["customer_id", "label"] + cols_to_drop]
-X = train[feature_cols]
-y = train["label"]
-
-low_var = [col for col in X.columns if X[col].nunique() <= 1]
-if low_var:
-    print(f" Eliminando columnas con un solo valor: {low_var}")
-    X = X.drop(columns=low_var)
+y = train_df["label"]
+X = train_df.drop(columns=["label"])
 
 X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    X, y, test_size=0.2, stratify=y, random_state=42
 )
 
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_val_scaled = scaler.transform(X_val)
+train_data = lgb.Dataset(X_train, label=y_train)
+val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
 
-missing_cols = [c for c in feature_cols if c not in test.columns]
-for col in missing_cols:
-    test[col] = 0
-test_features = test[X.columns]
-test_scaled = scaler.transform(test_features)
+params = {
+    "objective": "binary",
+    "boosting_type": "gbdt",
+    "metric": "auc",
+    "num_leaves": 64,
+    "max_depth": -1,
+    "learning_rate": 0.05,
+    "n_estimators": 1200,
+    "subsample": 0.85,
+    "colsample_bytree": 0.85,
+    "min_child_samples": 50,
+    "reg_alpha": 1.5,
+    "reg_lambda": 2.0,
+    "scale_pos_weight": 2.0,
+    "n_jobs": -1,
+    "random_state": 42,
+    "verbose": -1
+}
 
-model = LGBMClassifier(
-    n_estimators=400,
-    learning_rate=0.05,
-    max_depth=4,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    reg_lambda=2.0,
-    reg_alpha=0.5,
-    class_weight='balanced',
-    random_state=42,
-    n_jobs=-1
+callbacks = [lgb.early_stopping(stopping_rounds=50, verbose=False)]
+model = lgb.train(
+    params,
+    train_data,
+    valid_sets=[train_data, val_data],
+    callbacks=callbacks
 )
 
-model.fit(X_train_scaled, y_train)
+joblib.dump(model, "lightgbm_model.pkl")
 
-pred_val = model.predict(X_val_scaled)
-acc = accuracy_score(y_val, pred_val)
-f1 = f1_score(y_val, pred_val)
-cm = confusion_matrix(y_val, pred_val)
+y_prob_val = model.predict(X_val, num_iteration=model.best_iteration)
+y_pred_val = (y_prob_val > 0.5).astype(int)
 
-print("\n Evaluación en validación simple (LightGBM regularizado):")
-print(f"Accuracy: {acc:.4f}")
-print(f"F1-score: {f1:.4f}")
-print("Matriz de confusión:\n", cm)
+acc = accuracy_score(y_val, y_pred_val)
+auc = roc_auc_score(y_val, y_prob_val)
+print("Validación Accuracy:", round(acc, 4))
+print("Validación AUC:", round(auc, 4))
+print("Matriz de confusión:\n", confusion_matrix(y_val, y_pred_val))
+print("Reporte de clasificación:\n", classification_report(y_val, y_pred_val))
 
-kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-X_scaled_full = scaler.fit_transform(X)
-acc_cv = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring="accuracy").mean()
-f1_cv = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring="f1").mean()
+probs = model.predict(test_df, num_iteration=model.best_iteration)
+threshold = np.percentile(probs, 85)
+preds = (probs > threshold).astype(int)
 
-print(f"\n Cross-validation Accuracy promedio: {acc_cv:.4f}")
-print(f" Cross-validation F1 promedio:       {f1_cv:.4f}")
-
-importancia = pd.DataFrame({
-    "feature": X.columns,
-    "importance": model.feature_importances_
-}).sort_values(by="importance", ascending=False)
-
-print("\n Variables más importantes (LightGBM):")
-print(importancia.head(15))
-
-plt.figure(figsize=(10,6))
-top_features = importancia.head(15)
-plt.barh(top_features["feature"], top_features["importance"], color="limegreen")
-plt.xlabel("Importancia")
-plt.ylabel("Variable")
-plt.title("Importancia de Variables - LightGBM (Regularizado)")
-plt.gca().invert_yaxis()
-plt.tight_layout()
-plt.show()
-
-model.fit(X_scaled_full, y)
-
-preds_test = model.predict(test_scaled)
-
-pred_df = pd.DataFrame({
-    "prediction": preds_test
+submission = pd.DataFrame({
+    "ID": range(len(test_df)),
+    "pred": preds
 })
-pred_df.reset_index(inplace=True)
-pred_df.rename(columns={"index": "id"}, inplace=True)
-pred_df.to_csv("predicciones_LightGBM_final.csv", index=False)
-
-joblib.dump(model, "best_model_LightGBM_final.pkl")
-joblib.dump(scaler, "scaler_LightGBM_final.pkl")
-
-print("\n Archivo 'predicciones_LightGBM_final.csv' generado correctamente.")
-print(f"Filas del test: {pred_df.shape[0]}")
-print(pred_df.head())
+submission.to_csv("predictions_lgbm.csv", index=False)

@@ -1,127 +1,60 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
-from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
 import joblib
 
-# --- 1. Cargar datasets ---
-train = pd.read_csv("customer_purchase_train_modify.csv")
-test = pd.read_csv("customer_purchase_test_modify.csv")
+train_df = pd.read_csv("train_final.csv")
+test_df = pd.read_csv("test_final.csv")
 
-# --- 2. Crear etiqueta ---
-train["label"] = train["purchases_in_category"].apply(lambda x: 1 if x > 0 else 0)
+if "customer_id" in train_df.columns:
+    mean_purchase = train_df.groupby("customer_id")["label"].mean().to_dict()
+    train_df["customer_score"] = train_df["customer_id"].map(mean_purchase)
+    test_df["customer_score"] = test_df["customer_id"].map(mean_purchase).fillna(train_df["customer_score"].mean())
 
-# --- 3. Eliminar columnas con fuga de información ---
-cols_to_drop = [
-    "purchases_in_category",
-    "avg_spent_in_category",
-    "total_spent_in_category"
-]
+y = train_df["label"]
+X = train_df.drop(columns=["label"])
 
-feature_cols = [c for c in train.columns if c not in ["customer_id", "label"] + cols_to_drop]
-X = train[feature_cols]
-y = train["label"]
-
-# Eliminar columnas sin variabilidad
-low_var = [col for col in X.columns if X[col].nunique() <= 1]
-if low_var:
-    print(f"⚠️ Eliminando columnas con un solo valor: {low_var}")
-    X = X.drop(columns=low_var)
-
-# --- 4. División train/validación ---
 X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    X, y, test_size=0.2, stratify=y, random_state=42
 )
 
-# --- 5. Escalado ---
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_val_scaled = scaler.transform(X_val)
-
-# --- 6. Preparar test ---
-test_ids = test["customer_id"].copy()
-missing_cols = [c for c in feature_cols if c not in test.columns]
-for col in missing_cols:
-    test[col] = 0
-test_features = test[X.columns]
-test_scaled = scaler.transform(test_features)
-
-# --- 7. Modelo XGBoost (regularizado) ---
 model = XGBClassifier(
-    n_estimators=300,          # número de árboles
-    learning_rate=0.05,        # tasa de aprendizaje baja
-    max_depth=4,               # profundidad moderada
-    subsample=0.8,             # fracción de muestras por árbol
-    colsample_bytree=0.8,      # fracción de columnas por árbol
-    min_child_weight=5,        # controla sobreajuste en hojas pequeñas
-    reg_lambda=2.0,            # regularización L2
-    reg_alpha=0.5,             # regularización L1
-    scale_pos_weight=1,        # balancear clases si es necesario
+    n_estimators=400,
+    max_depth=6,
+    learning_rate=0.1,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_lambda=4.0,
+    reg_alpha=2.0,
+    min_child_weight=10,
+    gamma=2.0,
+    scale_pos_weight=2.0,
+    objective="binary:logistic",
+    eval_metric="auc",
+    tree_method="hist",
     random_state=42,
-    use_label_encoder=False,
-    eval_metric="logloss"
+    n_jobs=-1
 )
 
-model.fit(X_train_scaled, y_train)
+model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+joblib.dump(model, "xgb_by_customer.pkl")
 
-# --- 8. Evaluación ---
-pred_val = model.predict(X_val_scaled)
-acc = accuracy_score(y_val, pred_val)
-f1 = f1_score(y_val, pred_val)
-cm = confusion_matrix(y_val, pred_val)
+y_pred_val = model.predict(X_val)
+acc_val = accuracy_score(y_val, y_pred_val)
+auc_val = roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])
 
-print("\n✅ Evaluación en validación simple (XGBoost regularizado):")
-print(f"Accuracy: {acc:.4f}")
-print(f"F1-score: {f1:.4f}")
-print("Matriz de confusión:\n", cm)
+print("Validación Accuracy:", round(acc_val, 4))
+print("Validación AUC:", round(auc_val, 4))
+print("Matriz de confusión:\n", confusion_matrix(y_val, y_pred_val))
+print("Reporte de clasificación:\n", classification_report(y_val, y_pred_val))
 
-# --- 9. Validación cruzada ---
-kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-X_scaled_full = scaler.fit_transform(X)
-acc_cv = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring="accuracy").mean()
-f1_cv = cross_val_score(model, X_scaled_full, y, cv=kfold, scoring="f1").mean()
+probs = model.predict_proba(test_df)[:, 1]
+preds = (probs > 0.5).astype(int)
 
-print(f"\n🔁 Cross-validation Accuracy promedio: {acc_cv:.4f}")
-print(f"🔁 Cross-validation F1 promedio:       {f1_cv:.4f}")
-
-# --- 10. Importancia de variables ---
-importancia = pd.DataFrame({
-    "feature": X.columns,
-    "importance": model.feature_importances_
-}).sort_values(by="importance", ascending=False)
-
-print("\n⚡ Variables más importantes (XGBoost):")
-print(importancia.head(15))
-
-plt.figure(figsize=(10,6))
-top_features = importancia.head(15)
-plt.barh(top_features["feature"], top_features["importance"], color="darkorange")
-plt.xlabel("Importancia")
-plt.ylabel("Variable")
-plt.title("Importancia de Variables - XGBoost (Regularizado)")
-plt.gca().invert_yaxis()
-plt.tight_layout()
-plt.show()
-
-# --- 11. Reentrenar con todo el dataset ---
-model.fit(X_scaled_full, y)
-
-# --- 12. Predicciones finales ---
-preds_test = model.predict(test_scaled)
-
-pred_df = pd.DataFrame({
-    "customer_id": test_ids,
-    "prediction": preds_test
+submission = pd.DataFrame({
+    "ID": range(len(test_df)),
+    "pred": preds
 })
-pred_df.to_csv("predicciones_XGBoost_final.csv", index=False)
-
-# --- 13. Guardar modelo y escalador ---
-joblib.dump(model, "best_model_XGBoost_final.pkl")
-joblib.dump(scaler, "scaler_XGBoost_final.pkl")
-
-print("\n✅ Archivo 'predicciones_XGBoost_final.csv' generado correctamente.")
-print(f"Filas del test: {pred_df.shape[0]}")
-print(pred_df.head())
+submission.to_csv("predictions_xgb_by_customer.csv", index=False)
