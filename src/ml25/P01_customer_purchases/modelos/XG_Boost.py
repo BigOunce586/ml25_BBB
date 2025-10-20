@@ -5,13 +5,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
 import joblib
 
-train_df = pd.read_csv("train_final.csv")
-test_df = pd.read_csv("test_final.csv")
+train_df = pd.read_csv("C:/Users/paola/Downloads/ml25_BBB/src/ml25/datasets/customer_purchases/train_final.csv")
+test_df = pd.read_csv("C:/Users/paola/Downloads/ml25_BBB/src/ml25/datasets/customer_purchases/test_final.csv")
 
 if "customer_id" in train_df.columns:
     mean_purchase = train_df.groupby("customer_id")["label"].mean().to_dict()
     train_df["customer_score"] = train_df["customer_id"].map(mean_purchase)
-    test_df["customer_score"] = test_df["customer_id"].map(mean_purchase).fillna(train_df["customer_score"].mean())
+    test_df["customer_score"] = test_df["customer_id"].map(mean_purchase)
+    test_df["customer_score"].fillna(np.mean(list(mean_purchase.values())), inplace=True)
 
 y = train_df["label"]
 X = train_df.drop(columns=["label"])
