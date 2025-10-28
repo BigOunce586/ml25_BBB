@@ -213,7 +213,6 @@ __marimo__/
 *.pth
 */models/*.pt
 .vscode
-*.csv
 *.pth
 *.pt
 *.pkl
