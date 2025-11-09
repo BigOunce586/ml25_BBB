@@ -1,27 +1,45 @@
-# Proyecto: Predicción de Compra
+# Proyecto 1 - Identificando patrones de compra   
+**Curso:** Aprendizaje de Máquina  
+**Equipo:** ml25_BBB  
+**Integrantes:**  
+- Kevin Ledezma – Análisis de datos  
+- Ana Paola Moguel – Modelado y modificación del CSV  
+
+---
 
 ## Descripción
-Este proyecto predice si un cliente comprará un nuevo producto. La definición del proyecto se puede ver en el readme [`definicion`](./DEFINICION.md)
-El flujo está dividido en tres pasos: **exploración**, **entrenamiento** y **generar CSV de predicciones**.
+El proyecto busca predecir si un cliente existente comprará un nuevo producto de una tienda de ropa, usando datos históricos de compras. Se trabajó con un conjunto de datos multimodal que incluía información de clientes y productos.
+
+---
+
+## Modelos y metodología
+Se probaron dos modelos:
+- **Random Forest**  
+- **XGBoost**
+
+Ambos fueron entrenados después de limpiar y balancear los datos.  
+El modelo **Random Forest fue el que obtuvo el mejor desempeño**.  
+
+---
+
+## Resultados
+- **Accuracy (Random Forest):** 0.72  
+- **Puntaje Kaggle:** 0.80  
+- Se utilizó la **matriz de confusión** para analizar el rendimiento del modelo.
 
 ---
 
 ## Archivos principales
+- `analisis_exploratorio.py` – análisis inicial y limpieza  
+- `random_forest.py` – entrenamiento y validación  
+- `predictions_random_forest.csv` – exportación de predicciones  
+- `random_forest_model.pkl` – modelo 
+- `README.md` – descripción del proyecto  
+- `Presentacion de proyecto 1.pdf` – presentación del proyecto  
 
-### 1️. Exploración de datos
-Notebook para analizar el dataset y generar gráficos.
-[notebook](./data_exploration.py)
+---
 
-### 2. Entrenamiento
-script para entrenar el modelo y correr experimentos. Ejecutar el siguiente archivo:
-[training.py](./training.py)
-
-O en la consola como ...
-```
-conda activate mlenv
-python training.py
-```
-
-### 13. Resultados
-script para generar el csv que se sube a la competencia de kaggle. Ejecutar el siguiente archivo:
-[inference.py](./inference.py)
+## Conclusión
+El proyecto permitió entender mejor cómo preparar y balancear datos reales antes del modelado.  
+El **Random Forest** mostró buena capacidad para generalizar y fue la mejor opción del equipo.  
+Agregar los ejemplos negativos al dataset fue clave para mejorar la precisión del modelo.
